@@ -17,7 +17,8 @@ import type {
   ChampionItemStat,
 } from "../types/riot";
 import { useChampionStats } from "../hooks/useChampionStats";
-import type { RiotSettings } from "../hooks/useRiotSettings";
+import type { LeagueSettings } from "../games/league/hooks/useLeagueSettings";
+import type { AppSettings } from "../hooks/useAppSettings";
 import {
   ROLE_LABELS,
   ddragonChampionSquare,
@@ -32,7 +33,8 @@ type ChampSelectViewProps = {
   profileStatus: "idle" | "loading" | "success" | "error";
   profileData: RiotProfileBundle | null;
   profileConfigured: boolean;
-  settings: RiotSettings;
+  leagueSettings: LeagueSettings;
+  appSettings: AppSettings;
   onRefresh: () => void;
   onOpenSettings: () => void;
 };
@@ -119,10 +121,9 @@ export function ChampSelectView({
   status,
   session,
   error,
-  profileStatus: _profileStatus,
   profileData,
   profileConfigured,
-  settings,
+  appSettings,
   onRefresh,
   onOpenSettings,
 }: ChampSelectViewProps) {
@@ -133,7 +134,7 @@ export function ChampSelectView({
     profileData?.dataDragonVersion ?? champions?.version;
 
   // Fetch global stats from the backend
-  const globalStats = useChampionStats(settings, championId, {
+  const globalStats = useChampionStats(appSettings, championId, {
     order: 0,
     minGames: 5,
     limit: 20,
@@ -702,7 +703,6 @@ function ItemStrip({
 
 function LoadoutPanel({
   championName,
-  source: _source,
   sampleCount,
   dataDragonVersion,
 }: {

@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 /**
  * Cached summoner profiles fetched from the Riot API.
@@ -105,4 +105,67 @@ export const scriptsRun = sqliteTable("scripts_run", {
   errors: integer("errors").default(0),
   startedAt: integer("started_at", { mode: "timestamp" }).notNull(),
   completedAt: integer("completed_at", { mode: "timestamp" }),
+});
+
+// ── Game Auth & Lifecycle ─────────────────────────────────────────────────────
+
+/**
+ * Per-game auth tokens/session data.
+ * Separated from retained data so remove (clear auth) vs purge (delete all)
+ * are distinct operations.
+ */
+export const gameAuthTokens = sqliteTable("game_auth_tokens", {
+  /** Game identifier (e.g. "league", "overwatch") */
+  gameId: text("game_id").notNull(),
+  /** Token key (e.g. "api_key", "access_token", "session") */
+  tokenKey: text("token_key").notNull(),
+  /** Token value */
+  tokenValue: text("token_value").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.gameId, table.tokenKey] }),
+}));
+
+// ── Overwatch Matrices & Profiles ─────────────────────────────────────────────
+
+export const owHeroes = sqliteTable("ow_heroes", {
+  id: text("id").primaryKey(), // e.g. "winston"
+  name: text("name").notNull(),
+  role: text("role").notNull(), // "tank", "damage", "support"
+  archetype: text("archetype").notNull(), // "dive", "rush", "poke"
+});
+
+export const owHeroCounters = sqliteTable("ow_hero_counters", {
+  targetHeroId: text("target_hero_id").notNull(),
+  counterHeroId: text("counter_hero_id").notNull(),
+  weight: integer("weight").notNull(), // 2 (soft) to 4 (hard)
+  reason: text("reason"),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.targetHeroId, table.counterHeroId] }),
+}));
+
+export const owHeroSynergies = sqliteTable("ow_hero_synergies", {
+  heroIdA: text("hero_id_a").notNull(),
+  heroIdB: text("hero_id_b").notNull(),
+  score: integer("score").notNull(),
+  reason: text("reason"),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.heroIdA, table.heroIdB] }),
+}));
+
+export const owPlayerProfiles = sqliteTable("ow_player_profiles", {
+  playerId: text("player_id").primaryKey(), // e.g. "TeKrop-2217"
+  name: text("name").notNull(),
+  avatar: text("avatar"),
+  lastUpdatedAt: integer("last_updated_at", { mode: "timestamp" }).notNull(),
+  summaryJson: text("summary_json").notNull(),
+  statsJson: text("stats_json").notNull(),
+});
+
+export const owProfileSnapshots = sqliteTable("ow_profile_snapshots", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  playerId: text("player_id").notNull(),
+  capturedAt: integer("captured_at", { mode: "timestamp" }).notNull(),
+  statsJson: text("stats_json").notNull(), // The full stats blob at this point in time
+  deltaJson: text("delta_json"), // The inferred match data (diff from previous)
 });

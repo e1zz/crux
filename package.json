@@ -11,6 +11,11 @@
   },
   "workspaces": ["apps/*", "packages/*"],
   "devDependencies": {
+    "electron": "30.5.1",
     "turbo": "^2.5.0"
-  }
+  },
+  "trustedDependencies": [
+    "tesseract.js",
+    "uiohook-napi"
+  ]
 }

@@ -1,9 +1,10 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 
-import { summonerRoutes } from "./routes/summoner";
-import { statsRoutes } from "./routes/stats";
-import { cleanExpiredCache } from "./services/riotApi";
+import { createLeagueRoutes, leagueHealthCheck } from "./games/league";
+import { overwatchRoutes } from "./games/overwatch";
+import { cleanExpiredCache } from "./games/league/services/riotApi";
+import { lifecycleRoutes } from "./games/lifecycleRoutes";
 import { migrate } from "./db/migrate";
 import { startScheduler } from "./services/scheduler";
 
@@ -19,8 +20,18 @@ const app = new Elysia()
       methods: ["GET", "POST", "OPTIONS"],
     }),
   )
-  .use(summonerRoutes)
-  .use(statsRoutes)
+  // Global health check
+  .get("/api/health", () => ({
+    status: "ok",
+    hasApiKey: leagueHealthCheck().hasApiKey,
+    timestamp: Date.now(),
+  }))
+  // League of Legends routes
+  .use(createLeagueRoutes())
+  // Game lifecycle routes (install/remove/purge/health)
+  .use(lifecycleRoutes)
+  // Overwatch 2 routes (OverFast API proxy)
+  .use(overwatchRoutes)
   .onStart(() => {
     console.log(`🔄 Crux backend running on http://localhost:${PORT}`);
 

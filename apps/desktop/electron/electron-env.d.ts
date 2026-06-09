@@ -2,21 +2,7 @@
 
 declare namespace NodeJS {
   interface ProcessEnv {
-    /**
-     * The built directory structure
-     *
-     * ```tree
-     * ├─┬─┬ dist
-     * │ │ └── index.html
-     * │ │
-     * │ ├─┬ dist-electron
-     * │ │ ├── main.js
-     * │ │ └── preload.mjs
-     * │
-     * ```
-     */
     APP_ROOT: string;
-    /** /dist/ or /public/ */
     VITE_PUBLIC: string;
   }
 }
@@ -41,14 +27,25 @@ type ExportResult = {
   error?: string;
 };
 
-// Used in Renderer process, exposed in `preload.ts`
+type GameStatusPayload = {
+  active: boolean;
+  gameId: string | null;
+  clientRunning: boolean;
+  matchRunning: boolean;
+};
+
+type OverwatchScoreboardResult = {
+  battleTags: string[];
+};
+
 interface Window {
   electronAPI: {
     openExternalUrl: (url: string) => Promise<boolean>;
     onGameStatus: (
-      listener: (payload: { active: boolean }) => void,
+      listener: (payload: GameStatusPayload) => void,
     ) => () => void;
     getDesktopSources: () => Promise<Array<{ id: string; name: string }>>;
+    checkOverwatchRunning: () => Promise<boolean>;
     saveRecording: (
       recordingBuffer: ArrayBuffer,
       limits: { maxCount: number; maxSizeGB: number },
@@ -62,5 +59,9 @@ interface Window {
     getChampSelectSessionFromClient: () => Promise<
       import("../src/types/riot").LcuChampSelectSessionResult
     >;
+    onOverwatchScoreboard: (
+      listener: (payload: OverwatchScoreboardResult) => void,
+    ) => () => void;
+    setOcrDebugMode: (enabled: boolean) => Promise<void>;
   };
 }

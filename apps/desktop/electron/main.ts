@@ -8,6 +8,8 @@ import { createRequire } from 'node:module'
 
 import { createGamePoller } from './gamePoller'
 import { registerIpcHandlers } from './ipcHandlers'
+import { initGlobalKeyboardHook, stopGlobalKeyboardHook } from './keyboardHook'
+import { captureScoreboard } from './ocrPipeline'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -75,30 +77,31 @@ const DEFAULT_WINDOW_BOUNDS = {
   minHeight: 640,
 }
 
-function emitGameStatus(active: boolean) {
+function emitGameStatus(status: { active: boolean; gameId: string | null }) {
   for (const window of BrowserWindow.getAllWindows()) {
-    window.webContents.send('game-status', { active })
+    window.webContents.send("game-status", status);
   }
 }
 
-const gamePoller = createGamePoller((active) => {
-  emitGameStatus(active)
-})
+const gamePoller = createGamePoller((status) => {
+  emitGameStatus(status);
+});
 
 function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     ...DEFAULT_WINDOW_BOUNDS,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
+      preload: path.join(__dirname, 'preload.cjs'),
     },
   })
   win.setMenu(null)
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', (new Date).toLocaleString())
-    win?.webContents.send('game-status', { active: gamePoller.getCurrentStatus() })
+    win?.webContents.send("main-process-message", new Date().toLocaleString());
+    const current = gamePoller.getCurrentStatus();
+    win?.webContents.send("game-status", current);
   })
 
   if (VITE_DEV_SERVER_URL) {
@@ -115,6 +118,7 @@ function createWindow() {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     gamePoller.stop()
+    stopGlobalKeyboardHook()
     app.quit()
     win = null
   }
@@ -196,7 +200,7 @@ app.whenReady().then(() => {
       const contentLength = end - start + 1
       const nodeStream = createReadStream(filePath, { start, end })
 
-      return new Response(Readable.toWeb(nodeStream) as ReadableStream, {
+      return new Response(Readable.toWeb(nodeStream) as unknown as ReadableStream, {
         status: 206,
         headers: {
           'Content-Type': mimeType,
@@ -209,7 +213,7 @@ app.whenReady().then(() => {
     }
 
     const nodeStream = createReadStream(filePath)
-    return new Response(Readable.toWeb(nodeStream) as ReadableStream, {
+    return new Response(Readable.toWeb(nodeStream) as unknown as ReadableStream, {
       status: 200,
       headers: {
         'Content-Type': mimeType,
@@ -221,5 +225,23 @@ app.whenReady().then(() => {
   })
   registerIpcHandlers()
   gamePoller.start()
+
+  initGlobalKeyboardHook(
+    async () => {
+      // On Tab active
+      const status = gamePoller.getCurrentStatus()
+      if (status.gameId === 'overwatch') {
+        const result = await captureScoreboard()
+        if (result && win) {
+          // Send result to renderer so React UI can update
+          win.webContents.send('overwatch-scoreboard', result)
+        }
+      }
+    },
+    () => {
+      // On Tab inactive (optional: clear scoreboard data or ignore)
+    }
+  )
+
   createWindow()
 })

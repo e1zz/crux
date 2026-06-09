@@ -2,6 +2,10 @@ import { app, desktopCapturer, ipcMain, shell } from "electron";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
+
+const execAsync = promisify(exec);
 
 import { formatTimestamp } from "./utils";
 import {
@@ -10,6 +14,7 @@ import {
   type ChampSelectSessionPayload,
   type CurrentSummonerPayload,
 } from "./lcuClient";
+import { setOcrDebugMode } from "./ocrPipeline";
 
 const require = createRequire(import.meta.url);
 const ffmpeg = require("fluent-ffmpeg") as typeof import("fluent-ffmpeg");
@@ -360,6 +365,34 @@ export function registerIpcHandlers() {
         console.error("FFmpeg export error:", err);
         return { success: false, error: String(err) };
       }
+    },
+  );
+
+  ipcMain.handle(
+    "check-overwatch-running",
+    async (): Promise<boolean> => {
+      try {
+        if (process.platform === "win32") {
+          const { stdout } = await execAsync(
+            'tasklist /FI "IMAGENAME eq Overwatch.exe" 2>NUL',
+            { timeout: 3000 },
+          );
+          return stdout.toLowerCase().includes("overwatch.exe");
+        }
+        const { stdout } = await execAsync("pgrep -x Overwatch", {
+          timeout: 3000,
+        });
+        return stdout.trim().length > 0;
+      } catch {
+        return false;
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "set-ocr-debug-mode",
+    async (_event, enabled: boolean): Promise<void> => {
+      setOcrDebugMode(enabled);
     },
   );
 }

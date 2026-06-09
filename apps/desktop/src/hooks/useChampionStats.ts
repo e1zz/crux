@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChampionStatsResponse, ChampionItemStat } from "../types/riot";
-import type { RiotSettings } from "./useRiotSettings";
+import type { AppSettings } from "./useAppSettings";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -33,7 +33,7 @@ const INITIAL_STATE: State = {
  * @param options - Filtering options
  */
 export function useChampionStats(
-  settings: RiotSettings,
+  appSettings: AppSettings,
   championId: number,
   options: {
     order?: number;
@@ -45,7 +45,7 @@ export function useChampionStats(
   const { order = 0, minGames = 5, limit = 20, refreshKey = 0 } = options;
   const [state, setState] = useState<State>(INITIAL_STATE);
   const requestIdRef = useRef(0);
-  const backendUrl = settings.backendUrl.replace(/\/+$/, "");
+  const backendUrl = appSettings.backendUrl.replace(/\/+$/, "");
 
   const fetchStats = useCallback(async () => {
     if (!championId) {
@@ -57,7 +57,7 @@ export function useChampionStats(
     setState((prev) => ({ ...prev, status: "loading", error: null }));
 
     try {
-      const url = `${backendUrl}/api/stats/items/${championId}?order=${order}&minGames=${minGames}&limit=${limit}`;
+      const url = `${backendUrl}/api/league/stats/items/${championId}?order=${order}&minGames=${minGames}&limit=${limit}`;
       const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
       const result = await response.json() as ChampionStatsResponse;
 

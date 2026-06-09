@@ -10,6 +10,7 @@ import {
   type RecorderSettings,
   type RecorderSettingsStore,
   type ResolutionOption,
+  type RecorderMode,
 } from '../types/recorder'
 
 function createProfileId() {
@@ -38,6 +39,10 @@ function normalizeName(value: unknown, fallback: string) {
 function sanitizeSettings(value: Partial<RecorderSettings> | null | undefined): RecorderSettings {
   const isResolutionValid = RESOLUTION_OPTIONS.includes(value?.resolution as ResolutionOption)
   const isFpsValid = FPS_OPTIONS.includes(value?.frameRate as (typeof FPS_OPTIONS)[number])
+  const validModes: RecorderMode[] = ['active_game_only', 'all_installed_games']
+  const recorderMode: RecorderMode = validModes.includes(value?.recorderMode as RecorderMode)
+    ? (value?.recorderMode as RecorderMode)
+    : DEFAULT_SETTINGS.recorderMode
 
   const maxVideoCount =
     typeof value?.maxVideoCount === 'number' && value.maxVideoCount >= 1
@@ -54,6 +59,7 @@ function sanitizeSettings(value: Partial<RecorderSettings> | null | undefined): 
     frameRate: isFpsValid ? (value?.frameRate as (typeof FPS_OPTIONS)[number]) : DEFAULT_SETTINGS.frameRate,
     maxVideoCount,
     maxFolderSizeGB,
+    recorderMode,
   }
 }
 

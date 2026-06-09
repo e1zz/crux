@@ -7,8 +7,9 @@
  */
 
 import { createClient } from "@libsql/client";
+import { DATABASE_URL, ensureDatabaseDir } from "./path";
 
-const DATABASE_URL = process.env.DATABASE_URL ?? "file:./data/crux.db";
+ensureDatabaseDir();
 
 export async function migrate() {
   const client = createClient({ url: DATABASE_URL });
@@ -96,6 +97,68 @@ export async function migrate() {
       errors INTEGER DEFAULT 0,
       started_at INTEGER NOT NULL,
       completed_at INTEGER
+    )
+  `);
+
+  // Game Auth & Lifecycle
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS game_auth_tokens (
+      game_id TEXT NOT NULL,
+      token_key TEXT NOT NULL,
+      token_value TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (game_id, token_key)
+    )
+  `);
+
+  // Overwatch Matrices & Profiles
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS ow_heroes (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      archetype TEXT NOT NULL
+    )
+  `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS ow_hero_counters (
+      target_hero_id TEXT NOT NULL,
+      counter_hero_id TEXT NOT NULL,
+      weight INTEGER NOT NULL,
+      reason TEXT,
+      PRIMARY KEY (target_hero_id, counter_hero_id)
+    )
+  `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS ow_hero_synergies (
+      hero_id_a TEXT NOT NULL,
+      hero_id_b TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      reason TEXT,
+      PRIMARY KEY (hero_id_a, hero_id_b)
+    )
+  `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS ow_player_profiles (
+      player_id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      avatar TEXT,
+      last_updated_at INTEGER NOT NULL,
+      summary_json TEXT NOT NULL,
+      stats_json TEXT NOT NULL
+    )
+  `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS ow_profile_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      player_id TEXT NOT NULL,
+      captured_at INTEGER NOT NULL,
+      stats_json TEXT NOT NULL,
+      delta_json TEXT
     )
   `);
 

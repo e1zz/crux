@@ -2,8 +2,9 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 
 import * as schema from "./schema";
+import { DATABASE_URL, ensureDatabaseDir } from "./path";
 
-const DATABASE_URL = process.env.DATABASE_URL ?? "file:./data/crux.db";
+ensureDatabaseDir();
 
 const sqlite = createClient({
   url: DATABASE_URL,

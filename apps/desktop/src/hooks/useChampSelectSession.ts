@@ -77,6 +77,7 @@ export function useChampSelectSession(pollMs = 2_000) {
 
   useEffect(() => {
     void refetch();
+    if (pollMs <= 0) return;
     const interval = window.setInterval(() => {
       void refetch();
     }, pollMs);

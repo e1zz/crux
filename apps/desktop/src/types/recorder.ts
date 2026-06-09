@@ -1,5 +1,6 @@
 export type RecordingState = 'idle' | 'recording' | 'saving' | 'saved' | 'error'
 export type AppPage = 'recorder' | 'settings'
+export type RecorderMode = 'active_game_only' | 'all_installed_games'
 
 export const RESOLUTION_OPTIONS = ['1280x720', '1600x900', '1920x1080', '2560x1440'] as const
 export type ResolutionOption = (typeof RESOLUTION_OPTIONS)[number]
@@ -13,6 +14,7 @@ export type RecorderSettings = {
   frameRate: FrameRateOption
   maxVideoCount: number
   maxFolderSizeGB: number
+  recorderMode: RecorderMode
 }
 
 export type RecorderDeviceProfile = RecorderSettings & {
@@ -33,6 +35,7 @@ export const DEFAULT_SETTINGS: RecorderSettings = {
   frameRate: 60,
   maxVideoCount: 20,
   maxFolderSizeGB: 10,
+  recorderMode: 'active_game_only',
 }
 
 export const DEFAULT_DEVICE_PROFILE_NAME = 'This device'

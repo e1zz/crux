@@ -2,6 +2,9 @@ import { ipcRenderer, contextBridge } from "electron";
 
 type GameStatusPayload = {
   active: boolean;
+  gameId: string | null;
+  clientRunning: boolean;
+  matchRunning: boolean;
 };
 
 type DesktopSource = {
@@ -36,6 +39,10 @@ type LcuCurrentSummonerResult =
 type LcuChampSelectSessionResult =
   | { success: true; data: unknown }
   | { success: false; error: string };
+
+type OverwatchScoreboardResult = {
+  battleTags: string[];
+};
 
 contextBridge.exposeInMainWorld("electronAPI", {
   openExternalUrl(url: string) {
@@ -90,5 +97,23 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return ipcRenderer.invoke(
       "lcu-get-champ-select-session",
     ) as Promise<LcuChampSelectSessionResult>;
+  },
+  checkOverwatchRunning() {
+    return ipcRenderer.invoke("check-overwatch-running") as Promise<boolean>;
+  },
+  onOverwatchScoreboard(listener: (payload: OverwatchScoreboardResult) => void) {
+    const wrappedListener = (
+      _event: Electron.IpcRendererEvent,
+      payload: OverwatchScoreboardResult,
+    ) => {
+      listener(payload);
+    };
+    ipcRenderer.on("overwatch-scoreboard", wrappedListener);
+    return () => {
+      ipcRenderer.off("overwatch-scoreboard", wrappedListener);
+    };
+  },
+  setOcrDebugMode(enabled: boolean) {
+    return ipcRenderer.invoke("set-ocr-debug-mode", enabled) as Promise<void>;
   },
 });

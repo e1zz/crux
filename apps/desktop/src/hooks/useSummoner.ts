@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { RiotProfileBundle } from "../types/riot";
-import type { RiotSettings } from "./useRiotSettings";
+import type { AppSettings } from "./useAppSettings";
+import type { LeagueSettings } from "../games/league/hooks/useLeagueSettings";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -33,16 +34,17 @@ type UseSummonerOptions = {
  * from the Crux backend via HTTP.
  */
 export function useSummoner(
-  settings: RiotSettings,
+  leagueSettings: LeagueSettings,
+  appSettings: AppSettings,
   options: UseSummonerOptions = {},
 ) {
   const { matchCount = 10, refreshKey = 0 } = options;
   const [state, setState] = useState<State>(INITIAL_STATE);
   const requestIdRef = useRef(0);
-  const backendUrl = settings.backendUrl.replace(/\/+$/, "");
-  const platform = settings.platform;
-  const gameName = settings.gameName.trim();
-  const tagLine = settings.tagLine.replace(/^#/, "").trim();
+  const backendUrl = appSettings.backendUrl.replace(/\/+$/, "");
+  const platform = leagueSettings.platform;
+  const gameName = leagueSettings.gameName.trim();
+  const tagLine = leagueSettings.tagLine.replace(/^#/, "").trim();
 
   const fetchBundle = useCallback(async () => {
     if (!gameName || !tagLine) {
@@ -54,7 +56,7 @@ export function useSummoner(
     setState((prev) => ({ ...prev, status: "loading", error: null }));
 
     try {
-      const url = `${backendUrl}/api/summoner/${encodeURIComponent(platform)}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?matchCount=${matchCount}`;
+      const url = `${backendUrl}/api/league/profile/${encodeURIComponent(platform)}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?matchCount=${matchCount}`;
       const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
       const result = await response.json() as {
         success: boolean;

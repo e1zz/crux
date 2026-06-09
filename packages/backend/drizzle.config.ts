@@ -1,10 +1,11 @@
 import { defineConfig } from "drizzle-kit";
+import { DATABASE_URL } from "./src/db/path";
 
 export default defineConfig({
   schema: "./src/db/schema.ts",
   out: "./drizzle",
   dialect: "sqlite",
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? "file:./data/crux.db",
+    url: DATABASE_URL,
   },
 });
